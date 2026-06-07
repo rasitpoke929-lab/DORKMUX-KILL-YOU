@@ -403,7 +403,7 @@ async function sendMsg() {
 
         const res = await fetch(AI_URL, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'x-api-key': AI_KEY},
+            headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'x-api-key': AI_KEY},
             body: JSON.stringify(body)
         });
 
