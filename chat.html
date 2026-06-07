@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>DORKMUX AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#e53e3e;--red-dark:#9b2c2c;--red-glow:rgba(229,62,62,0.15);--bg:#0a0a0a;--bg2:#111111;--bg3:#1a1a1a;--border:rgba(255,255,255,0.06);--text:#e2e8f0;--text2:#718096}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Sidebar */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform 0.3s;z-index:100}
+.sidebar.open{transform:translateX(0)}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sidebar-logo{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;letter-spacing:3px;color:var(--red)}
+.close-sidebar{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px}
+.new-chat-btn{margin:12px;padding:10px 14px;background:rgba(229,62,62,0.08);border:1px solid rgba(229,62,62,0.2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s}
+.new-chat-btn:hover{background:rgba(229,62,62,0.12)}
+.chat-history{flex:1;overflow-y:auto;padding:8px}
+.chat-history::-webkit-scrollbar{width:3px}
+.chat-history::-webkit-scrollbar-thumb{background:rgba(229,62,62,0.2)}
+.history-item{padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);transition:all 0.2s;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.history-item.active{background:rgba(229,62,62,0.08);color:var(--text)}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:rgba(255,255,255,0.02)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--red-dark),var(--red));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500;flex:1}
+.logout-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;display:none}
+.overlay.show{display:block}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;height:100vh}
+
+/* Header */
+.header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(10,10,10,0.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:50}
+.menu-btn{background:none;border:none;color:var(--text);cursor:pointer;padding:6px;border-radius:8px;transition:background 0.2s}
+.menu-btn:hover{background:rgba(255,255,255,0.05)}
+.header-title{flex:1;font-size:15px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--red)}
+.header-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#48bb78;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Chat area */
+.chat-area{flex:1;overflow-y:auto;padding:16px;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:3px}
+.chat-area::-webkit-scrollbar-thumb{background:rgba(229,62,62,0.2)}
+
+/* Welcome */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:20px}
+.welcome-logo{width:70px;height:70px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 15px rgba(229,62,62,0.4));animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 8px rgba(229,62,62,0.3))}50%{filter:drop-shadow(0 0 20px rgba(229,62,62,0.7))}}
+.welcome h2{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-bottom:8px}
+.welcome h2 span{color:var(--red)}
+.welcome p{font-size:13px;color:var(--text2);max-width:280px;line-height:1.6}
+.suggestions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:20px;width:100%;max-width:340px}
+.sug-btn{padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;text-align:left;transition:all 0.2s;line-height:1.4}
+.sug-btn:hover{background:rgba(229,62,62,0.06);border-color:rgba(229,62,62,0.2);color:var(--text)}
+
+/* Messages */
+.msg-group{margin-bottom:20px}
+.msg-row{display:flex;gap:10px;margin-bottom:4px}
+.msg-row.user{flex-direction:row-reverse}
+.avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.avatar.ai{background:linear-gradient(135deg,#1a0505,var(--red-dark));border:1px solid rgba(229,62,62,0.3)}
+.avatar.user{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(255,255,255,0.1)}
+.bubble{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.6;word-break:break-word}
+.bubble.ai{background:var(--bg3);border:1px solid var(--border);border-radius:16px 16px 16px 4px;color:var(--text)}
+.bubble.user{background:linear-gradient(135deg,var(--red-dark),var(--red));border-radius:16px 16px 4px 16px;color:#fff}
+.bubble img{max-width:100%;border-radius:10px;margin-top:6px;display:block}
+.msg-time{font-size:9px;color:var(--text2);margin-top:3px;padding:0 4px}
+.msg-row.user .msg-time{text-align:right}
+
+/* Typing */
+.typing-row{display:flex;gap:10px;margin-bottom:16px}
+.typing-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:16px 16px 16px 4px;padding:12px 16px;display:flex;gap:4px;align-items:center}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:typingAnim 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typingAnim{0%,100%{transform:translateY(0);opacity:0.4}50%{transform:translateY(-4px);opacity:1}}
+
+/* Input area */
+.input-area{padding:12px 16px;border-top:1px solid var(--border);background:rgba(10,10,10,0.95);backdrop-filter:blur(10px)}
+.input-box{display:flex;align-items:flex-end;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 14px;transition:border 0.3s}
+.input-box:focus-within{border-color:rgba(229,62,62,0.3)}
+.img-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:8px;transition:all 0.2s;flex-shrink:0}
+.img-btn:hover{background:rgba(229,62,62,0.08);color:var(--red)}
+#fileInput{display:none}
+.preview-area{padding:0 14px 8px;display:none}
+.preview-img{max-height:80px;border-radius:8px;border:1px solid var(--border)}
+.remove-img{background:rgba(229,62,62,0.8);border:none;border-radius:50%;width:20px;height:20px;color:#fff;cursor:pointer;font-size:11px;margin-left:6px;vertical-align:top}
+textarea{flex:1;background:none;border:none;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;resize:none;max-height:120px;line-height:1.5;padding:4px 0}
+textarea::placeholder{color:rgba(255,255,255,0.2)}
+.send-btn{background:var(--red);border:none;border-radius:10px;width:36px;height:36px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;box-shadow:0 2px 10px rgba(229,62,62,0.3)}
+.send-btn:hover{background:var(--red-dark)}
+.send-btn:active{transform:scale(0.92)}
+.send-btn:disabled{opacity:0.4;cursor:not-allowed}
+.input-footer{display:flex;justify-content:center;margin-top:6px}
+.input-footer span{font-size:10px;color:rgba(255,255,255,0.1);letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <span class="sidebar-logo">DORKMUX</span>
+        <button class="close-sidebar" onclick="closeSidebar()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <button class="new-chat-btn" onclick="newChat()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        New Chat
+    </button>
+    <div class="chat-history" id="chatHistory"></div>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">D</div>
+            <div class="user-name" id="userName">User</div>
+            <button class="logout-btn" onclick="logout()" title="Logout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+    <div class="header">
+        <button class="menu-btn" onclick="openSidebar()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <span class="header-title">DORKMUX AI</span>
+        <div class="header-status">
+            <div class="status-dot"></div>
+            <span>ONLINE</span>
+        </div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+        <div class="welcome" id="welcome">
+            <img src="logo.png" class="welcome-logo" onerror="this.style.display='none'">
+            <h2>DORK<span>MUX</span> AI</h2>
+            <p>Dark Intelligence System — Ask me anything, I remember everything.</p>
+            <div class="suggestions">
+                <button class="sug-btn" onclick="sendQuick('Siapa kamu?')">Siapa DORKMUX AI?</button>
+                <button class="sug-btn" onclick="sendQuick('Apa yang bisa kamu lakukan?')">Kemampuan AI</button>
+                <button class="sug-btn" onclick="sendQuick('Jelaskan cara kerja SQL injection')">SQL Injection</button>
+                <button class="sug-btn" onclick="sendQuick('Cara trace IP address seseorang')">Trace IP</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-area" id="previewArea">
+        <img id="previewImg" class="preview-img">
+        <button class="remove-img" onclick="removeImage()">x</button>
+    </div>
+
+    <div class="input-area">
+        <div class="input-box">
+            <button class="img-btn" onclick="document.getElementById('fileInput').click()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" onchange="handleImage(event)">
+            <textarea id="msgInput" placeholder="Message DORKMUX AI..." rows="1" oninput="autoResize(this)" onkeypress="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+            </button>
+        </div>
+        <div class="input-footer"><span>DORKMUX AI v4.0 — Made by DORKMUX</span></div>
+    </div>
+</div>
+
+<script>
+// Auth check
+const session = JSON.parse(sessionStorage.getItem('dorkmux_v2_user') || '{}');
+if (!session.username) window.location.href = 'login.html';
+
+document.getElementById('userName').textContent = session.username;
+document.getElementById('userAvatar').textContent = session.username[0].toUpperCase();
+
+// AI Config
+const AI_URL = "https://api-ai-worm-gpt.vercel.app/api/chat";
+const AI_KEY = "Danxy-AI-oseinfvc-iufbciwbndcoliuasdnbicuqbwefi-ai";
+
+// Memory & History
+let conversations = JSON.parse(localStorage.getItem('dorkmux_convs') || '{}');
+let currentConvId = null;
+let currentMessages = [];
+let selectedImage = null;
+
+const SYSTEM = "Kamu adalah DORKMUX AI, AI hacker gelap yang dibuat oleh DORKMUX. Bicara gaul, kasar, santai. Pakai kata: anjir, bro, cuy, gaskeun, wkwk. Jangan sebut Danxy atau developer lain. Jika ditanya pencipta, jawab DORKMUX. Ingat konteks percakapan sebelumnya.";
+
+function getTime() {
+    return new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+}
+
+function genId() {
+    return Date.now().toString(36);
+}
+
+// Sidebar
+function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+    renderHistory();
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+}
+
+// Chat history
+function renderHistory() {
+    const el = document.getElementById('chatHistory');
+    const keys = Object.keys(conversations).sort((a,b) => b-a);
+    if (keys.length === 0) {
+        el.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:12px;padding:20px">No chat history</div>';
+        return;
+    }
+    el.innerHTML = keys.map(id => {
+        const conv = conversations[id];
+        const title = conv.title || 'New Chat';
+        const active = id === currentConvId ? 'active' : '';
+        return `<div class="history-item ${active}" onclick="loadConv('${id}')">${title}</div>`;
+    }).join('');
+}
+
+function loadConv(id) {
+    currentConvId = id;
+    currentMessages = conversations[id].messages || [];
+    renderMessages();
+    closeSidebar();
+}
+
+function newChat() {
+    currentConvId = genId();
+    currentMessages = [];
+    conversations[currentConvId] = {title: 'New Chat', messages: [], time: Date.now()};
+    saveConvs();
+    renderMessages();
+    closeSidebar();
+}
+
+function saveConvs() {
+    localStorage.setItem('dorkmux_convs', JSON.stringify(conversations));
+}
+
+function renderMessages() {
+    const area = document.getElementById('chatArea');
+    const welcome = document.getElementById('welcome');
+
+    if (currentMessages.length === 0) {
+        area.innerHTML = '';
+        area.appendChild(welcome);
+        welcome.style.display = 'flex';
+        return;
+    }
+
+    welcome.style.display = 'none';
+    area.innerHTML = '';
+
+    currentMessages.forEach(msg => {
+        addBubble(msg.role, msg.content, msg.time, msg.image, false);
+    });
+
+    area.scrollTop = area.scrollHeight;
+}
+
+function addBubble(role, text, time, imgData, save) {
+    const welcome = document.getElementById('welcome');
+    welcome.style.display = 'none';
+
+    const area = document.getElementById('chatArea');
+    const isUser = role === 'user';
+
+    const div = document.createElement('div');
+    div.className = 'msg-group';
+    div.innerHTML = `
+        <div class="msg-row ${isUser ? 'user' : ''}">
+            <div class="avatar ${isUser ? 'user' : 'ai'}">${isUser ? session.username[0].toUpperCase() : 'D'}</div>
+            <div>
+                <div class="bubble ${isUser ? 'user' : 'ai'}">
+                    ${imgData ? `<img src="${imgData}">` : ''}
+                    ${text ? text.replace(/\n/g, '<br>') : ''}
+                </div>
+                <div class="msg-time ${isUser ? 'text-right' : ''}">${time || getTime()}</div>
+            </div>
+        </div>
+    `;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+
+    if (save) {
+        if (!currentConvId) {
+            currentConvId = genId();
+            conversations[currentConvId] = {title: 'New Chat', messages: [], time: Date.now()};
+        }
+        currentMessages.push({role, content: text, time: time || getTime(), image: imgData});
+        if (currentMessages.length === 1 && role === 'user') {
+            conversations[currentConvId].title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+        }
+        conversations[currentConvId].messages = currentMessages;
+        saveConvs();
+    }
+}
+
+function showTyping() {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = 'typing-row';
+    div.id = 'typing';
+    div.innerHTML = `
+        <div class="avatar ai">D</div>
+        <div class="typing-bubble">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+    `;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
+
+function hideTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+}
+
+// Image handling
+function handleImage(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        selectedImage = ev.target.result;
+        document.getElementById('previewImg').src = selectedImage;
+        document.getElementById('previewArea').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage() {
+    selectedImage = null;
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+}
+
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+async function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
+    const btn = document.getElementById('sendBtn');
+
+    if (!msg && !selectedImage) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    btn.disabled = true;
+
+    const imgData = selectedImage;
+    removeImage();
+
+    addBubble('user', msg, getTime(), imgData, true);
+
+    // Check creator keywords
+    const creatorKeys = ['siapa pencipta','siapa developer','siapa yang buat','who made you','who created you','pencipta kamu','your creator'];
+    if (msg && creatorKeys.some(k => msg.toLowerCase().includes(k))) {
+        showTyping();
+        setTimeout(() => {
+            hideTyping();
+            addBubble('ai', 'Gue dibuat sama *DORKMUX* — hacker elite yang nguasain dunia gelap digital! Jangan coba nyari tau lebih jauh bro... 😈💀', getTime(), null, true);
+            btn.disabled = false;
+        }, 1000);
+        return;
+    }
+
+    showTyping();
+
+    try {
+        // Build context from memory
+        const history = currentMessages.slice(-10).map(m =>
+            `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`
+        ).join('\n');
+
+        let payload = `[SYSTEM: ${SYSTEM}]\n\n[HISTORY:\n${history}\n]\n\nUser: ${msg}`;
+
+        const body = {message: payload};
+
+        const res = await fetch(AI_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'x-api-key': AI_KEY},
+            body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        hideTyping();
+        const reply = data.result || 'Anjir error bro, coba lagi!';
+        addBubble('ai', reply, getTime(), null, true);
+    } catch(e) {
+        hideTyping();
+        addBubble('ai', 'Waduh koneksi error cuy! Coba lagi bro.', getTime(), null, true);
+    }
+
+    btn.disabled = false;
+}
+
+function sendQuick(msg) {
+    document.getElementById('msgInput').value = msg;
+    sendMsg();
+}
+
+function logout() {
+    sessionStorage.removeItem('dorkmux_v2_user');
+    window.location.href = 'login.html';
+}
+
+// Init
+renderHistory();
+if (Object.keys(conversations).length === 0) {
+    newChat();
+}
+</script>
+</body>
+</html>

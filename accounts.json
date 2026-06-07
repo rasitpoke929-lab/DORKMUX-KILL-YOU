@@ -1,0 +1,10 @@
+{
+    "accounts": [
+        {
+            "username": "admin",
+            "password": "dorkmux666",
+            "role": "admin",
+            "expired": "9999-12-31"
+        }
+    ]
+}
